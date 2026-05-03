@@ -1,0 +1,2 @@
+class ModuleValidationError(ValueError):
+    pass

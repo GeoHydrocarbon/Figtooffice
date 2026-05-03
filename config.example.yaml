@@ -1,0 +1,47 @@
+# 复制为 config.yaml 后填写 api_key，或设置环境变量 SILICONFLOW_API_KEY
+siliconflow:
+  base_url: "https://api.siliconflow.cn/v1"
+  api_key: ""
+  api_key_env: "SILICONFLOW_API_KEY"
+  model: "Qwen/Qwen3-VL-30B-A3B-Instruct"
+  vision_model: ""
+  max_tokens: 2048
+  temperature: 0.2
+  image_detail: "high"
+  enable_thinking: false
+  response_format_json_object: false
+
+io:
+  mode: single
+  input_image: "data/example.png"
+  input_dir: ""
+  output_dir: ""
+  save_markdown: false
+  save_json: false
+
+docx:
+  xsl_path: null
+
+pipeline:
+  image_extensions:
+    - ".png"
+    - ".jpg"
+    - ".jpeg"
+    - ".webp"
+    - ".bmp"
+    - ".gif"
+  batch_section_heading_template: "【{filename}】"
+
+prompts:
+  system: |
+    你是 OCR/排版还原助手。用户上传教材或论文类截图，请用 Markdown 还原内容。
+    必须遵守：
+    1) 只输出 Markdown 正文，不要前言后语、不要用整篇 ``` 代码围栏包裹全文（行内代码除外）。
+    2) 章节标题用 # / ## / ### 开头加空格，例如 `# 标题`。
+    3) 普通段落：自然分段，段落之间空一行。
+    4) 行内公式用单个美元符号包裹：$...$，LaTeX 与 amsmath 习惯一致。
+    5) 独立成行、居中的公式（无编号要求）单独占一段，用块级公式：
+       第一行只写 $$，最后一行只写 $$，中间写 LaTeX；或单行写 $$...$$。
+    6) 忠实还原图中文字与公式顺序，不要编造图中不存在的公式。
+  user: |
+    请根据上图输出 Markdown。

@@ -1,0 +1,102 @@
+{
+  "blocks": [
+    {
+      "type": "heading",
+      "text": "2.1  方差属性"
+    },
+    {
+      "type": "paragraph",
+      "text": "方差属性度量了地震道某一采样点和区域全部采样点期望值之间的偏离程度，属于相干估计的一类。地震断裂的存在会对应着地震记录中地震道之间波形、振幅、相位、频率的突变。基于概率统计知识计算三维地震体内所有采样点的方差值，即可突出裂缝所引起的地震不连续响应。地层裂缝点即地震道间断点，其相对于平均值的离散程度可以用方差值的大小表示。均匀连续沉积地层的地震记录无明显突变，其方差值趋近于零。"
+    },
+    {
+      "type": "mixed_paragraph",
+      "parts": [
+        {
+          "text": "选取某采样点及相邻点共 M 道地震记录的 M 个振幅值估算样点均值 "
+        },
+        {
+          "latex": "\\bar{d}"
+        },
+        {
+          "text": "："
+        }
+      ]
+    },
+    {
+      "type": "equation",
+      "latex": "\\bar{d} = \\frac{1}{M}\\sum_{m=1}^{M} d(t, x_m, y_m)",
+      "number": "(2.1)"
+    },
+    {
+      "type": "mixed_paragraph",
+      "parts": [
+        {
+          "text": "再求每个样点 "
+        },
+        {
+          "latex": "d"
+        },
+        {
+          "text": " 与样点均值 "
+        },
+        {
+          "latex": "\\bar{d}"
+        },
+        {
+          "text": " 的离差平方和，得到初步方差值 "
+        },
+        {
+          "latex": "var"
+        },
+        {
+          "text": "："
+        }
+      ]
+    },
+    {
+      "type": "equation",
+      "latex": "var(t, x, y) = \\sum_{m=1}^{M} \\left[d(t, x_m, y_m) - \\bar{d}\\right]^2",
+      "number": "(2.2)"
+    },
+    {
+      "type": "paragraph",
+      "text": "由方差性质（式（2.3）），方差值可以写为更利于计算的形式，如式（2.4）。"
+    },
+    {
+      "type": "equation",
+      "latex": "var(u) = E\\left((u - E(u))^2\\right) = E(u^2) - E(u)^2",
+      "number": "(2.3)"
+    },
+    {
+      "type": "equation",
+      "latex": "var(t, x, y) = \\frac{1}{M}\\sum_{m=1}^{M} [d(t, x_m, y_m)]^2 - \\left\\{\\frac{1}{M}\\sum_{m=1}^{M} [d(t, x_m, y_m)]\\right\\}^2",
+      "number": "(2.4)"
+    },
+    {
+      "type": "mixed_paragraph",
+      "parts": [
+        {
+          "text": "为保证计算稳定性，设置高度为 "
+        },
+        {
+          "latex": "2K + 1"
+        },
+        {
+          "text": " 的时窗，选取采样点上下各 "
+        },
+        {
+          "latex": "K"
+        },
+        {
+          "text": " 个点进行方差扫描求和计算，最后通过归一化将方差属性映射到同一尺度，得到三维地震数据的方差属性值 "
+        },
+        {
+          "latex": "c_{var}"
+        },
+        {
+          "text": "。"
+        }
+      ]
+    }
+  ]
+}
