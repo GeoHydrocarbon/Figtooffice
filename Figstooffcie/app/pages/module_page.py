@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
+from uuid import uuid4
 
 from PySide6.QtCore import QThread
 from PySide6.QtWidgets import (
+    QApplication,
     QFileDialog,
     QFormLayout,
     QGridLayout,
@@ -57,11 +60,16 @@ class ModuleRunPage(QWidget):
 
         input_box = QGroupBox("输入")
         input_layout = QVBoxLayout(input_box)
-        input_layout.addWidget(QLabel("支持单张、批量目录、拖拽。目录会自动展开为图片列表。"))
+        self.input_hint_label = QLabel(self.module_service.manifest.input_hint)
+        self.input_hint_label.setWordWrap(True)
+        input_layout.addWidget(self.input_hint_label)
+        self.input_list.set_drop_hint(self.module_service.manifest.input_hint)
+        if self.module_service.manifest.accepts_clipboard_image:
+            self.input_list.set_paste_handler(self._paste_clipboard_image)
         input_layout.addWidget(self.input_list)
 
         input_buttons = QHBoxLayout()
-        add_files_button = QPushButton("添加图片")
+        add_files_button = QPushButton(f"添加{self.module_service.manifest.input_file_label}")
         add_dir_button = QPushButton("添加目录")
         clear_button = QPushButton("清空")
         remove_button = QPushButton("移除选中")
@@ -71,6 +79,10 @@ class ModuleRunPage(QWidget):
         remove_button.clicked.connect(self.input_list.remove_selected)
         input_buttons.addWidget(add_files_button)
         input_buttons.addWidget(add_dir_button)
+        if self.module_service.manifest.accepts_clipboard_image:
+            paste_button = QPushButton("粘贴剪贴板图片")
+            paste_button.clicked.connect(self._paste_clipboard_image)
+            input_buttons.addWidget(paste_button)
         input_buttons.addWidget(remove_button)
         input_buttons.addWidget(clear_button)
         input_buttons.addStretch(1)
@@ -120,9 +132,9 @@ class ModuleRunPage(QWidget):
     def _choose_files(self) -> None:
         paths, _ = QFileDialog.getOpenFileNames(
             self,
-            "选择图片",
+            self.module_service.manifest.input_dialog_title,
             "",
-            "图片 (*.png *.jpg *.jpeg *.webp *.bmp *.gif)",
+            self.module_service.manifest.input_dialog_filter,
         )
         if paths:
             self.input_list.add_paths([Path(p) for p in paths])
@@ -137,10 +149,34 @@ class ModuleRunPage(QWidget):
         if path:
             self.output_dir_edit.setText(path)
 
+    def _paste_clipboard_image(self) -> None:
+        clipboard = QApplication.clipboard()
+        image = clipboard.image()
+        if image.isNull():
+            QMessageBox.warning(self, "没有图片", "剪贴板中没有可用图片。")
+            return
+
+        _, _, paths = self.settings_supplier()
+        target_dir = paths.user_data_dir / "clipboard_inputs" / self.module_service.manifest.module_id
+        target_dir.mkdir(parents=True, exist_ok=True)
+        filename = f"clipboard_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid4().hex[:8]}.png"
+        target_path = target_dir / filename
+        if not image.save(str(target_path), "PNG"):
+            QMessageBox.critical(self, "保存失败", "无法将剪贴板图片保存为临时文件。")
+            return
+
+        self.input_list.add_paths([target_path])
+        self.status_view.append(f"已添加剪贴板图片：{target_path.name}")
+        self.log_callback(f"已保存剪贴板图片：{target_path}")
+
     def _start_run(self) -> None:
         raw_inputs = self.input_list.paths()
         if not raw_inputs:
-            QMessageBox.warning(self, "输入为空", "请先添加图片或目录。")
+            QMessageBox.warning(
+                self,
+                "输入为空",
+                f"请先添加{self.module_service.manifest.input_file_label}或目录。",
+            )
             return
 
         settings, secrets, paths = self.settings_supplier()

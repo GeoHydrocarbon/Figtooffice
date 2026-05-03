@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from core.config import SUPPORTED_IMAGE_EXTENSIONS
 from core.exceptions import ModuleValidationError
-from core.files import is_supported_image
+from core.files import expand_image_inputs, is_supported_image
 from core.models import ModuleManifest, RunContext
 from infra.ai import build_provider
 from infra.ai.vision_provider import PromptSet
@@ -36,7 +37,16 @@ class ImageToExcelService:
         display_name="图片转 Excel",
         description="将单表图片识别为结构化表格，并导出为 Excel 工作簿。",
         output_extension=".xlsx",
+        input_extensions=SUPPORTED_IMAGE_EXTENSIONS,
+        input_file_label="图片",
+        input_dialog_title="选择图片",
+        input_dialog_filter="图片 (*.png *.jpg *.jpeg *.webp *.bmp *.gif)",
+        input_hint="支持单张图片、图片目录、拖拽、剪贴板粘贴。目录会自动展开为图片列表。",
+        accepts_clipboard_image=True,
     )
+
+    def expand_inputs(self, input_paths: list[Path]) -> list[Path]:
+        return expand_image_inputs(input_paths)
 
     def validate_inputs(self, input_paths: list[Path]) -> None:
         if not input_paths:

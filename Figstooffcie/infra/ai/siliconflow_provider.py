@@ -40,6 +40,17 @@ class SiliconFlowVisionProvider:
         text = self._call_model(image_path=image_path, prompts=prompts, model=model)
         return parse_model_json(text)
 
+    def recognize_json_bytes(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+        prompts: PromptSet,
+        model: str,
+    ) -> dict[str, Any]:
+        data_url = self._bytes_to_data_url(image_bytes, mime_type)
+        text = self._call_model_with_data_url(data_url=data_url, prompts=prompts, model=model)
+        return parse_model_json(text)
+
     def validate_model(self, model: str) -> str:
         if not model.strip():
             raise ValueError("模型名称为空，请先填写模型名称。")
@@ -72,6 +83,15 @@ class SiliconFlowVisionProvider:
             raise ValueError("模型名称为空，请先在设置页配置模型。")
 
         data_url = self._image_to_data_url(image_path)
+        return self._call_model_with_data_url(data_url=data_url, prompts=prompts, model=model)
+
+    def _call_model_with_data_url(
+        self,
+        *,
+        data_url: str,
+        prompts: PromptSet,
+        model: str,
+    ) -> str:
         messages: list[dict[str, Any]] = []
         if prompts.system_prompt.strip():
             messages.append({"role": "system", "content": prompts.system_prompt.strip()})
@@ -118,5 +138,8 @@ class SiliconFlowVisionProvider:
         if not mime:
             mime = "application/octet-stream"
         raw = path.read_bytes()
-        encoded = base64.standard_b64encode(raw).decode("ascii")
-        return f"data:{mime};base64,{encoded}"
+        return self._bytes_to_data_url(raw, mime)
+
+    def _bytes_to_data_url(self, image_bytes: bytes, mime_type: str) -> str:
+        encoded = base64.standard_b64encode(image_bytes).decode("ascii")
+        return f"data:{mime_type};base64,{encoded}"

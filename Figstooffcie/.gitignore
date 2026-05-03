@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+
+.localdata/
+conda_env/
+build/
+dist/
+
+tmp_validation/
+tmp_pdf_validation/
+
+.DS_Store

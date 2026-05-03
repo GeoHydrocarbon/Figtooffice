@@ -20,6 +20,15 @@ class VisionProvider(Protocol):
     def recognize_json(self, image_path: Path, prompts: PromptSet, model: str) -> dict[str, Any]:
         ...
 
+    def recognize_json_bytes(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+        prompts: PromptSet,
+        model: str,
+    ) -> dict[str, Any]:
+        ...
+
 
 def strip_markdown_code_fence(text: str) -> str:
     text = text.strip()

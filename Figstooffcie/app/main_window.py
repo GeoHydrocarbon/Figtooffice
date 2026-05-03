@@ -22,6 +22,7 @@ from app.pages.settings_page import SettingsPage
 from core.config import AppPaths, SettingsStore
 from core.registry import ModuleRegistry
 from modules.img_to_excel.module import create_module as create_excel_module
+from modules.pdf_to_word.module import create_module as create_pdf_module
 from modules.img_to_word.module import create_module as create_word_module
 
 
@@ -35,6 +36,7 @@ class MainWindow(QMainWindow):
         self.registry = ModuleRegistry()
         self.registry.register(create_word_module())
         self.registry.register(create_excel_module())
+        self.registry.register(create_pdf_module())
 
         self.setWindowTitle("Figstooffcie")
         self.resize(1200, 820)
@@ -44,17 +46,15 @@ class MainWindow(QMainWindow):
         self.log_view = QPlainTextEdit()
         self.log_view.setReadOnly(True)
         self.log_view.setPlaceholderText("运行日志会显示在这里。")
+        self.module_pages: list[tuple[object, ModuleRunPage]] = []
 
-        self.word_page = ModuleRunPage(
-            module_service=self.registry.get("img_to_word"),
-            settings_supplier=self._get_runtime_settings,
-            log_callback=self.append_log,
-        )
-        self.excel_page = ModuleRunPage(
-            module_service=self.registry.get("img_to_excel"),
-            settings_supplier=self._get_runtime_settings,
-            log_callback=self.append_log,
-        )
+        for module_service in self.registry.all():
+            page = ModuleRunPage(
+                module_service=module_service,
+                settings_supplier=self._get_runtime_settings,
+                log_callback=self.append_log,
+            )
+            self.module_pages.append((module_service, page))
         self.settings_page = SettingsPage(
             settings=self.settings,
             secrets=self.secrets,
@@ -81,8 +81,8 @@ class MainWindow(QMainWindow):
         right_layout.setContentsMargins(8, 8, 8, 8)
         right_layout.setSpacing(8)
 
-        self.stack.addWidget(self.word_page)
-        self.stack.addWidget(self.excel_page)
+        for _, page in self.module_pages:
+            self.stack.addWidget(page)
         self.stack.addWidget(self.settings_page)
 
         log_header = QWidget()
@@ -113,15 +113,15 @@ class MainWindow(QMainWindow):
 
     def _build_menu(self) -> None:
         settings_action = QAction("设置", self)
-        settings_action.triggered.connect(lambda: self.sidebar.setCurrentRow(2))
+        settings_action.triggered.connect(lambda: self.sidebar.setCurrentRow(len(self.module_pages)))
         self.menuBar().addAction(settings_action)
 
     def _populate_sidebar(self) -> None:
         items = [
-            ("图片转 Word", "将图片识别并导出为带可编辑公式的 Word"),
-            ("图片转 Excel", "将单表图片识别并导出为 Excel"),
-            ("设置", "配置 API Key、模型和默认目录"),
+            (module_service.manifest.display_name, module_service.manifest.description)
+            for module_service, _ in self.module_pages
         ]
+        items.append(("设置", "配置 API Key、模型和默认目录"))
         for title, tooltip in items:
             item = QListWidgetItem(title)
             item.setToolTip(tooltip)
@@ -131,8 +131,8 @@ class MainWindow(QMainWindow):
         return self.settings, self.secrets, self.paths
 
     def _refresh_pages(self) -> None:
-        self.word_page.apply_settings(self.settings)
-        self.excel_page.apply_settings(self.settings)
+        for _, page in self.module_pages:
+            page.apply_settings(self.settings)
 
     def _on_settings_saved(self, settings, secrets) -> None:
         self.settings = settings

@@ -8,6 +8,7 @@ from pathlib import Path
 
 APP_NAME = "Figstooffcie"
 SUPPORTED_IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif")
+SUPPORTED_PDF_EXTENSIONS = (".pdf",)
 
 
 @dataclass

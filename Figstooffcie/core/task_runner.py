@@ -17,7 +17,10 @@ class BatchTaskRunner:
         progress_callback=None,
         log_callback=None,
     ) -> list[FileTaskResult]:
-        input_files = expand_image_inputs(request.input_paths)
+        if hasattr(module_service, "expand_inputs"):
+            input_files = module_service.expand_inputs(request.input_paths)
+        else:
+            input_files = expand_image_inputs(request.input_paths)
         module_service.validate_inputs(input_files)
         request.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -33,7 +36,7 @@ class BatchTaskRunner:
             else:
                 context.log(message)
 
-        log(f"开始处理，共 {total} 张图片。")
+        log(f"开始处理，共 {total} 个输入文件。")
         if progress_callback is not None:
             progress_callback(0, total)
 

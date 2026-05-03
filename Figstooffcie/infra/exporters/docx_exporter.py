@@ -1,36 +1,52 @@
 from __future__ import annotations
 
-import re
+from io import BytesIO
 from pathlib import Path
 
 from docx import Document
+from docx.enum.table import WD_CELL_VERTICAL_ALIGNMENT, WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt
 
+from core.document_models import (
+    DocumentData,
+    EquationBlock,
+    EquationRun,
+    HeadingBlock,
+    ImageBlock,
+    PageBreakBlock,
+    ParagraphBlock,
+    TableBlock,
+    TextRun,
+)
+from core.document_parsers import document_from_markdown
 from infra.equation.omml_converter import OmmlConverter
 
 
-INLINE_MATH = re.compile(r"\$(?!\$)(.+?)\$(?!\$)", re.DOTALL)
-HEADING_LINE = re.compile(r"^(#{1,6})\s+(.+)$")
-
-
 def export_markdown_to_docx(markdown: str, output_path: Path) -> None:
+    export_document_to_docx(document_from_markdown(markdown), output_path)
+
+
+def export_document_to_docx(document_data: DocumentData, output_path: Path) -> None:
     document = Document()
     configure_document(document)
     converter = OmmlConverter()
 
-    for kind, payload in iter_markdown_events(markdown):
-        if kind == "heading":
-            level, text = payload
-            if level == 1:
-                add_heading(document, text)
-            else:
-                document.add_heading(text, level=min(max(level - 1, 0), 9))
-        elif kind == "paragraph":
-            add_paragraph_markdown(document, converter, payload)
-        elif kind == "display":
-            add_centered_display_equation(document, converter, payload)
+    for block in document_data.blocks:
+        if isinstance(block, HeadingBlock):
+            add_heading_block(document, block)
+        elif isinstance(block, ParagraphBlock):
+            add_paragraph_block(document, converter, block)
+        elif isinstance(block, EquationBlock):
+            add_equation_block(document, converter, block)
+        elif isinstance(block, TableBlock):
+            add_table_block(document, block)
+        elif isinstance(block, ImageBlock):
+            add_image_block(document, block)
+        elif isinstance(block, PageBreakBlock):
+            document.add_page_break()
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     document.save(output_path)
@@ -73,6 +89,15 @@ def add_heading(document: Document, text: str) -> None:
     set_run_font(run, font_name="黑体", font_size=16)
 
 
+def add_heading_block(document: Document, block: HeadingBlock) -> None:
+    if block.level <= 1:
+        add_heading(document, block.text)
+        return
+    paragraph = document.add_heading(level=min(max(block.level - 1, 0), 9))
+    run = paragraph.add_run(block.text)
+    set_run_font(run, font_name="黑体", font_size=max(12, 18 - block.level))
+
+
 def add_text_paragraph(document: Document, text: str) -> None:
     paragraph = document.add_paragraph()
     format_body_paragraph(paragraph)
@@ -80,21 +105,25 @@ def add_text_paragraph(document: Document, text: str) -> None:
     set_run_font(run, font_name="宋体", font_size=12)
 
 
-def add_mixed_paragraph(document: Document, converter: OmmlConverter, parts: list[dict[str, str]]) -> None:
+def add_paragraph_block(document: Document, converter: OmmlConverter, block: ParagraphBlock) -> None:
     paragraph = document.add_paragraph()
     format_body_paragraph(paragraph)
-    for part in parts:
-        if "text" in part:
-            run = paragraph.add_run(part["text"])
+    for part in block.parts:
+        if isinstance(part, TextRun):
+            run = paragraph.add_run(part.text)
             set_run_font(run, font_name="宋体", font_size=12)
-        elif "latex" in part:
+        elif isinstance(part, EquationRun):
             run = paragraph.add_run()
-            run._element.append(converter.to_omml(part["latex"]))
+            run._element.append(converter.to_omml(part.latex))
 
 
-def add_centered_display_equation(document: Document, converter: OmmlConverter, latex: str) -> None:
-    if not latex.strip():
+def add_equation_block(document: Document, converter: OmmlConverter, block: EquationBlock) -> None:
+    if not block.latex.strip():
         return
+    if block.number:
+        add_numbered_equation(document, converter, block.latex, block.number)
+        return
+
     paragraph = document.add_paragraph()
     paragraph.paragraph_format.space_before = Pt(6)
     paragraph.paragraph_format.space_after = Pt(6)
@@ -102,94 +131,95 @@ def add_centered_display_equation(document: Document, converter: OmmlConverter, 
     paragraph.paragraph_format.line_spacing = 1.5
     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = paragraph.add_run()
-    run._element.append(converter.to_omml(latex))
+    run._element.append(converter.to_omml(block.latex))
 
 
-def add_paragraph_markdown(document: Document, converter: OmmlConverter, text: str) -> None:
-    parts = text_to_mixed_parts(text)
-    if len(parts) == 1 and "text" in parts[0]:
-        add_text_paragraph(document, parts[0]["text"])
+def add_table_block(document: Document, block: TableBlock) -> None:
+    total_rows = len(block.rows) + (1 if block.headers else 0)
+    total_cols = max(
+        len(block.headers),
+        max((len(row) for row in block.rows), default=0),
+    )
+    if total_rows == 0 or total_cols == 0:
         return
-    add_mixed_paragraph(document, converter, parts)
+
+    table = document.add_table(rows=total_rows, cols=total_cols)
+    table.style = "Table Grid"
+
+    row_index = 0
+    if block.headers:
+        for column_index, value in enumerate(block.headers):
+            cell = table.cell(0, column_index)
+            cell.text = value
+            cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            paragraph = cell.paragraphs[0]
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            if paragraph.runs:
+                set_run_font(paragraph.runs[0], "宋体", 11, bold=True)
+        row_index = 1
+
+    for data_row in block.rows:
+        for column_index, value in enumerate(data_row):
+            cell = table.cell(row_index, column_index)
+            cell.text = value
+            cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+            if cell.paragraphs[0].runs:
+                set_run_font(cell.paragraphs[0].runs[0], "宋体", 11)
+        row_index += 1
+
+    document.add_paragraph()
 
 
-def text_to_mixed_parts(text: str) -> list[dict[str, str]]:
-    parts: list[dict[str, str]] = []
-    pos = 0
-    for match in INLINE_MATH.finditer(text):
-        if match.start() > pos:
-            chunk = text[pos : match.start()]
-            if chunk:
-                parts.append({"text": chunk})
-        latex = match.group(1).strip()
-        if latex:
-            parts.append({"latex": latex})
-        pos = match.end()
-    if pos < len(text):
-        tail = text[pos:]
-        if tail:
-            parts.append({"text": tail})
-    if not parts:
-        parts.append({"text": text})
-    return parts
+def add_image_block(document: Document, block: ImageBlock) -> None:
+    paragraph = document.add_paragraph()
+    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = paragraph.add_run()
+    width = Cm(block.width_cm) if block.width_cm else None
+    run.add_picture(BytesIO(block.image_bytes), width=width)
+    if block.caption.strip():
+        caption = document.add_paragraph()
+        caption.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        caption_run = caption.add_run(block.caption)
+        set_run_font(caption_run, font_name="宋体", font_size=10)
 
 
-def iter_markdown_events(markdown: str):
-    lines = markdown.splitlines()
-    index = 0
-    total = len(lines)
-    while index < total:
-        stripped = lines[index].strip()
-        if not stripped:
-            index += 1
-            continue
+def add_numbered_equation(document: Document, converter: OmmlConverter, latex: str, number: str) -> None:
+    table = document.add_table(rows=1, cols=3)
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+    table.autofit = False
+    remove_table_borders(table)
 
-        heading_match = HEADING_LINE.match(stripped)
-        if heading_match:
-            yield "heading", (len(heading_match.group(1)), heading_match.group(2).strip())
-            index += 1
-            continue
+    widths = [Cm(1.5), Cm(11.7), Cm(2.2)]
+    row = table.rows[0]
+    for cell, width in zip(row.cells, widths, strict=True):
+        cell.width = width
+        cell.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
+        cell.paragraphs[0].paragraph_format.space_before = Pt(0)
+        cell.paragraphs[0].paragraph_format.space_after = Pt(0)
 
-        if stripped.startswith("$$"):
-            if stripped.endswith("$$") and stripped.count("$$") == 2 and len(stripped) >= 6:
-                yield "display", stripped[2:-2].strip()
-                index += 1
-                continue
+    center_paragraph = row.cells[1].paragraphs[0]
+    center_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    center_run = center_paragraph.add_run()
+    center_run._element.append(converter.to_omml(latex))
 
-            inner: list[str] = []
-            if stripped != "$$":
-                remainder = stripped[2:].strip()
-                if remainder.endswith("$$"):
-                    yield "display", remainder[:-2].strip()
-                    index += 1
-                    continue
-                inner.append(remainder)
-            index += 1
-            while index < total:
-                line = lines[index]
-                candidate = line.strip()
-                if candidate.endswith("$$"):
-                    prefix = line.rsplit("$$", 1)[0]
-                    if prefix.strip():
-                        inner.append(prefix.rstrip())
-                    index += 1
-                    break
-                inner.append(line)
-                index += 1
-            else:
-                raise ValueError("存在未闭合的块级公式。")
-            yield "display", "\n".join(inner).strip()
-            continue
+    number_paragraph = row.cells[2].paragraphs[0]
+    number_paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+    number_run = number_paragraph.add_run(number)
+    set_run_font(number_run, font_name="Times New Roman", font_size=12)
 
-        buffer = [lines[index]]
-        index += 1
-        while index < total:
-            line = lines[index]
-            stripped_line = line.strip()
-            if not stripped_line or stripped_line.startswith("#") or stripped_line.startswith("$$"):
-                break
-            buffer.append(line)
-            index += 1
-        paragraph = "\n".join(buffer).strip()
-        if paragraph:
-            yield "paragraph", paragraph
+    document.add_paragraph()
+
+
+def remove_table_borders(table) -> None:
+    tbl_pr = table._tbl.tblPr
+    tbl_borders = tbl_pr.first_child_found_in("w:tblBorders")
+    if tbl_borders is None:
+        tbl_borders = OxmlElement("w:tblBorders")
+        tbl_pr.append(tbl_borders)
+
+    for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        edge_element = tbl_borders.find(qn(f"w:{edge}"))
+        if edge_element is None:
+            edge_element = OxmlElement(f"w:{edge}")
+            tbl_borders.append(edge_element)
+        edge_element.set(qn("w:val"), "nil")

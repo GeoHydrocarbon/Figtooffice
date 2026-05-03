@@ -2,9 +2,18 @@ from __future__ import annotations
 
 from copy import deepcopy
 from pathlib import Path
+import sys
 
 from latex2mathml.converter import convert as latex_to_mathml
 from lxml import etree
+
+
+def bundled_xsl_candidates() -> list[Path]:
+    local_dir = Path(__file__).resolve().parent
+    candidates = [local_dir / "MML2OMML.XSL"]
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        candidates.append(Path(sys._MEIPASS) / "infra" / "equation" / "MML2OMML.XSL")
+    return candidates
 
 
 DEFAULT_XSL_CANDIDATES = [
@@ -16,11 +25,11 @@ DEFAULT_XSL_CANDIDATES = [
 
 
 def find_mml2omml_xsl() -> Path:
-    for candidate in DEFAULT_XSL_CANDIDATES:
+    for candidate in bundled_xsl_candidates() + DEFAULT_XSL_CANDIDATES:
         if candidate.is_file():
             return candidate
     raise FileNotFoundError(
-        "未找到 MML2OMML.XSL。请在本机安装 Microsoft Word。"
+        "未找到 MML2OMML.XSL。请重新打包程序，或在本机安装 Microsoft Word。"
     )
 
 
