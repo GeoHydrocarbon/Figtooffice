@@ -35,6 +35,12 @@
 - 图片转 Excel：识别单表图片，导出 `.xlsx`
 - PDF 转 Word：优先保留文字、公式、表格，当前默认忽略图片
 
+## 界面预览
+
+<div align="center">
+  <img src="docs/screenshots/main-window.png" alt="Figstooffcie 主界面" width="100%">
+</div>
+
 ## 输入方式
 
 - 文件选择

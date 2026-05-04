@@ -40,6 +40,12 @@ Figtooffice 的目标很直接：把图片或 PDF 中的文字、公式、表格
 - 图片转 Excel：识别单张表格图片，导出 `.xlsx`
 - PDF 转 Word：重点保留文字、公式、表格，忽略图片
 
+## 界面预览
+
+<div align="center">
+  <img src="Figstooffcie/docs/screenshots/main-window.png" alt="Figtooffice 主界面" width="100%">
+</div>
+
 ## 适合什么场景
 
 - 论文截图、教材截图、扫描页整理成 Word
