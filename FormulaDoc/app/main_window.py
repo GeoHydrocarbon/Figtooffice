@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QAction, QDesktopServices
+from PySide6.QtGui import QAction, QDesktopServices, QPixmap
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -73,6 +73,7 @@ class MainWindow(QMainWindow):
         left_layout = QVBoxLayout(left_container)
         left_layout.setContentsMargins(8, 8, 8, 8)
         left_layout.setSpacing(8)
+        left_layout.addWidget(self._build_brand_panel())
         left_layout.addWidget(QLabel("模块"))
         left_layout.addWidget(self.sidebar)
 
@@ -117,6 +118,33 @@ class MainWindow(QMainWindow):
         self.statusBar().addPermanentWidget(github_label)
         self.statusBar().addPermanentWidget(QLabel(f"Made by {APP_AUTHOR}"))
         self.sidebar.currentRowChanged.connect(self.stack.setCurrentIndex)
+
+    def _build_brand_panel(self) -> QWidget:
+        panel = QWidget()
+        layout = QHBoxLayout(panel)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(10)
+
+        logo_label = QLabel()
+        logo_label.setFixedSize(44, 44)
+        logo_path = self.paths.resource_root / "docs" / "logo.png"
+        if logo_path.is_file():
+            pixmap = QPixmap(str(logo_path)).scaled(
+                44,
+                44,
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation,
+            )
+            logo_label.setPixmap(pixmap)
+
+        text_label = QLabel(
+            f"<b>{APP_NAME}</b><br/><span style='color:#666666;'>Made by {APP_AUTHOR}</span>"
+        )
+        text_label.setTextFormat(Qt.RichText)
+
+        layout.addWidget(logo_label, 0, Qt.AlignTop)
+        layout.addWidget(text_label, 1)
+        return panel
 
     def _build_menu(self) -> None:
         settings_action = QAction("设置", self)

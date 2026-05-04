@@ -13,6 +13,10 @@ datas = list(collect_data_files("certifi"))
 _bundled_xsl = spec_dir / "infra" / "equation" / "MML2OMML.XSL"
 if _bundled_xsl.is_file():
     datas.append((str(_bundled_xsl), "infra/equation"))
+for _asset_name in ("logo.png", "logo.ico"):
+    _asset = spec_dir / "docs" / _asset_name
+    if _asset.is_file():
+        datas.append((str(_asset), "docs"))
 # latex2mathml 在模块加载时读取同目录下 unimathsymbols.txt；PyInstaller 默认不会带上
 _l2m_spec = importlib.util.find_spec("latex2mathml")
 if _l2m_spec and _l2m_spec.origin:
@@ -22,6 +26,7 @@ if _l2m_spec and _l2m_spec.origin:
         datas.append((str(_uni), "latex2mathml"))
 binaries = []
 hiddenimports = []
+_app_icon = spec_dir / "docs" / "logo.ico"
 
 # Conda 的 OpenSSL 在 Library\bin，与 DLLs\_ssl.pyd 成对；显式打入避免与系统/PySide 携带版本混用导致 _ssl 加载失败
 _conda_lib_bin = Path(sys.base_prefix) / "Library" / "bin"
@@ -122,6 +127,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=str(_app_icon) if _app_icon.is_file() else None,
 )
 
 coll = COLLECT(

@@ -34,12 +34,14 @@ class SecretSettings:
 @dataclass(frozen=True)
 class AppPaths:
     project_root: Path
+    resource_root: Path
     user_data_dir: Path
     settings_file: Path
     secrets_file: Path
 
 
-def build_app_paths(project_root: Path) -> AppPaths:
+def build_app_paths(project_root: Path, resource_root: Path | None = None) -> AppPaths:
+    resolved_resource_root = resource_root or project_root
     base_dir = Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
     user_data_dir = base_dir / APP_NAME
     try:
@@ -50,6 +52,7 @@ def build_app_paths(project_root: Path) -> AppPaths:
         user_data_dir.mkdir(parents=True, exist_ok=True)
     return AppPaths(
         project_root=project_root,
+        resource_root=resolved_resource_root,
         user_data_dir=user_data_dir,
         settings_file=user_data_dir / "settings.json",
         secrets_file=user_data_dir / "secrets.json",

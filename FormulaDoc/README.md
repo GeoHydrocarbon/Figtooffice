@@ -1,4 +1,5 @@
 <div align="center">
+  <img src="docs/logo.png" alt="FormulaDoc logo" width="180">
   <h1>FormulaDoc</h1>
   <p><strong>Windows 桌面版文档处理工具</strong></p>
   <p>by Jorlin</p>

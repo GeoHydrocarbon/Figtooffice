@@ -1,4 +1,5 @@
 <div align="center">
+  <img src="FormulaDoc/docs/logo.png" alt="FormulaDoc logo" width="180">
   <h1>FormulaDoc</h1>
   <p><strong>面向 Windows 的 Office 文档转换工具</strong></p>
   <p>by Jorlin</p>
