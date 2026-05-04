@@ -4,13 +4,13 @@
   <p>by Jorlin</p>
   <p>图片转 Word · 图片转 Excel · PDF 转 Word</p>
   <p>
-    <a href="https://github.com/GeoHydrocarbon/Figtooffice/releases">下载发布包</a>
+    <a href="https://github.com/GeoHydrocarbon/FormulaDoc/releases">下载发布包</a>
     ·
     <a href="#快速开始">快速开始</a>
     ·
     <a href="#核心模块">核心模块</a>
     ·
-    <a href="https://github.com/GeoHydrocarbon/Figtooffice/issues">问题反馈</a>
+    <a href="https://github.com/GeoHydrocarbon/FormulaDoc/issues">问题反馈</a>
   </p>
   <p>
     <img src="https://img.shields.io/badge/Platform-Windows%2010%2F11-0078D6?style=flat-square" alt="Windows">
@@ -19,10 +19,10 @@
     <img src="https://img.shields.io/badge/Clipboard-Image%20Input-FF9800?style=flat-square" alt="Clipboard">
   </p>
   <p>
-    <a href="https://github.com/GeoHydrocarbon/Figtooffice/releases">
+    <a href="https://github.com/GeoHydrocarbon/FormulaDoc/releases">
       <img src="https://img.shields.io/badge/Download-Windows%20Build-0A66C2?style=for-the-badge" alt="Download">
     </a>
-    <a href="https://github.com/GeoHydrocarbon/Figtooffice/issues">
+    <a href="https://github.com/GeoHydrocarbon/FormulaDoc/issues">
       <img src="https://img.shields.io/badge/Feedback-Issues-333333?style=for-the-badge" alt="Issues">
     </a>
   </p>
@@ -53,7 +53,7 @@
 
 ### 直接使用打包程序
 
-1. 打开 [Releases](https://github.com/GeoHydrocarbon/Figtooffice/releases)
+1. 打开 [Releases](https://github.com/GeoHydrocarbon/FormulaDoc/releases)
 2. 下载 Windows 发布包
 3. 解压整个压缩包
 4. 运行 `FormulaDoc.exe`
